@@ -1,0 +1,130 @@
+##############IPA SERVER##############
+AD Netbios Name = EXAMPLE
+IPA Netbios Name = IPAEXAMPLE
+
+     OPEN PORT :
+     TCP: 464, 80, 88, 389
+     UDP: 464, 99, 123 (if NTP enabled)
+
+yum install ipa-server ipa-server-dns ipa-server-trust-ad 
+
+systemctl start named && systemctl status named
+
+ipa-server-install --domain=lab.example.com --realm=LAB.EXAMPLE.COM --ds-password=Redhat123 --admin-password=Redhat123 --ip-address=10.10.10.20(ip IDM) --hostname=idm.lab.example.com --setup-dns --no-forwarders --mkhomedir --reverse-zone=10.10.10.in-addr.arpa.
+
+kinit admin
+
+ipa dnsforwardzone-add --skip-overlap-check example.com --forwarder=10.10.10.21(ip AD) --forward-policy=only
+
+systemctl restart named-pkcs11; systemctl status named-pkcs11
+
+dnscmd 127.0.0.1 /RecordAdd ^
+example.com idm.lab.example.com. ^
+A 10.10.10.22 (ip idm)
+
+dnscmd 127.0.0.1 /RecordAdd ^
+example.com ^
+lab.example.com. NS ^
+idm.lab.example.com.
+
+
+ipa-adtrust-install --netbios-name=IPAEXAMPLE -a Redhat123
+
+ansible-playbook install_ip_master.yml
+OR
+vi /root/ipa_pwd_extop.ldif
+dn: cn=ipa_pwd_extop,cn=plugins,cn=config
+changetype: modify
+add: passSyncManagersDNs
+passSyncManagersDNs: uid=admin,cn=users,cn=accounts,dc=idm,dc=astra,dc=com
+
+ldapmodify -x -D "cn=Directory Manager" -h master.idm.astra.com -p 389 -f /root/ipa_pwd_extop.ldif -W
+
+
+ipa trust-add --type=ad example.com --admin Administrator --password
+OR
+ipa trust-add --type=ad example.com --admin Administrator --external=true --password --two-way=true
+
+authconfig --enablemkhomedir --update
+
+##############REPLICA##############
+yum install ipa-server ipa-server-dns
+
+kinit admin
+
+ipa-join
+
+vi /etc/hosts (master & replica)
+10.10.10.20 idm.lab.example.com
+10.10.10.22 replica.lab.example.com 
+
+ipa-replica-install
+
+ipa-ca-install
+
+##############IPA CLIENT##############
+ipa-client-install --server=idm.lab.example.com --domain=lab.example.com --realm=LAB.EXAMPLE.COM --mkhomedir
+
+authconfig --enablemkhomedir --update
+
+vi /etc/sssd/sssd.conf
+[sssd]
+services = sudo, nss, ifp, pam, ssh, pac
+domains = lab.example.net
+
+[nss]
+homedir_substring = /home
+entry_cache_timeout = 300
+entry_cache_nowait_percentage = 75
+memcache_timeout = 600
+
+
+vi /etc/krb5.conf
+dns_lookup_realm = true
+dns_lookup_kdc = true
+
+service sssd stop; rm -f /var/lib/sss/db/* ; service sssd start;service sssd status
+
+
+
+***IPA CHECK TOPOLOGY
+ipa topologysegment-find domain
+
+ipa topologysegment-find ca
+
+***IPA ADD TOPOLOGY SEGEMENT
+ipa topologysegment-add domain ipa3.example.com-to-ipa4.example.com \
+    --leftnode=ipa3.example.com --rightnode=ipa4.example.com
+
+***IPA CHECK
+ipa user-find
+ipa idrange-find
+
+***KERBEROS
+-show krb user list
+klist -kt /etc/dirsrv/ds.keytab
+
+
+
+ipa certmaprule-add ad_cert_for_ipa_users \
+  --maprule='(ipacertmapdata=X509:<I>{issuer_dn!nss_x500}<S>{subject_dn!nss_x500})' \
+  --matchrule='<ISSUER>CN=AD-ROOT-CA,DC=ad,DC=example,DC=com' \
+  --domain=idm.astra.example.com
+
+  ipa certmaprule-add ad_cert_for_ad_users \
+  --maprule='(altSecurityIdentities=X509:<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500})' \
+  --matchrule='<ISSUER>CN=AD-ROOT-CA,DC=ad,DC=example,DC=com' \
+  --domain=AD.example.com
+
+  ipa certmaprule-add ad_cert_for_ipa_and_ad_users \
+  --maprule='(|(ipacertmapdata=X509:<I>{issuer_dn!nss_x500}<S>{subject_dn!nss_x500})(altSecurityIdentities=X509:<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500}))' \
+  --matchrule='<ISSUER>CN=AD-ROOT-CA,DC=example,DC=com' \
+  --domain=example.com
+
+  ipa certmaprule-add ipa_cert_for_ad_users \
+  --maprule='(|(userCertificate;binary={cert!bin})(ipacertmapdata=X509:<I>{issuer_dn!nss_x500}<S>{subject_dn!nss_x500})(altSecurityIdentities=X509:<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500}))' \
+  --matchrule='<ISSUER>CN=Certificate Authority,O=ASTRA.EXAMPLE.COM' \
+  --domain=idm.astra.example.com --domain=example.com
+
+openssl x509 -in user.crt -noout -issuer
+issuer= /O=ASTRA.EXAMPLE.COM/CN=Certificate
