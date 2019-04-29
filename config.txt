@@ -84,6 +84,8 @@ dns_lookup_realm = true
 dns_lookup_kdc = true
 
 service sssd stop; rm -f /var/lib/sss/db/* ; service sssd start;service sssd status
+OR
+ssh_cache -E
 
 
 
@@ -128,3 +130,27 @@ ipa certmaprule-add ad_cert_for_ipa_users \
 
 openssl x509 -in user.crt -noout -issuer
 issuer= /O=ASTRA.EXAMPLE.COM/CN=Certificate
+
+#####sudo config#####
+https://www.youtube.com/watch?v=AR4pr-foT8s
+systemctl restart messagebus
+systemctl restart oddjobd
+
+vi /etc/sudo-ldap.conf (client)
+uri ldap://idm.lab.example.net (master idm host)
+ssl start_tls
+binddn uid=sudo,cn=sysaccounts,cn=etc,dc=lab,dc=example,dc=net
+bindpw Redhat123
+sudoers_base ou=sudoers,dc=lab,dc=example,dc=net
+tls_cacert /etc/ipa/ca.crt
+sudoers_debug 2
+
+kinit admin
+ldappasswd -Y GSSAPI -S uid=sudo,cn=sysaccounts,cn=etc,dc=lab,dc=example,dc=net
+New Password: Redhat123
+
+####setting SSSD####
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/deployment_guide/configuring_services
+
+####EXTERNAL GROUP####
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8-beta/html-single/installing_identity_management_and_access_control/index#planning-trust-non-posix-external-groups-and-security-id-mapping-fin
