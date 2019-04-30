@@ -1,0 +1,1 @@
+ipa: ERROR: CIFS server communication error: code "3221225506", message "{Access Denied} A process has requested access to an object but has not been granted those access rights." (both may be "None")
