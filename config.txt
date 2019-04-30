@@ -85,7 +85,7 @@ dns_lookup_kdc = true
 
 service sssd stop; rm -f /var/lib/sss/db/* ; service sssd start;service sssd status
 OR
-ssh_cache -E
+sss_cache -E
 
 
 
@@ -154,3 +154,5 @@ https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/de
 
 ####EXTERNAL GROUP####
 https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8-beta/html-single/installing_identity_management_and_access_control/index#planning-trust-non-posix-external-groups-and-security-id-mapping-fin
+
+https://docs.fedoraproject.org/en-US/Fedora/18/html/FreeIPA_Guide/trust-groups.html
