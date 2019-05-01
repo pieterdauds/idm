@@ -1,4 +1,4 @@
-##############IPA SERVER##############
+#############IPA SERVER##############
 AD Netbios Name = EXAMPLE
 IPA Netbios Name = IPAEXAMPLE
 
