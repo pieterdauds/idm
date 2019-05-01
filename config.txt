@@ -18,6 +18,7 @@ ipa dnsforwardzone-add --skip-overlap-check example.com --forwarder=10.10.10.21(
 
 systemctl restart named-pkcs11; systemctl status named-pkcs11
 
+########TRUST TO ACTIVE DIRECTORY#######
 dnscmd 127.0.0.1 /RecordAdd ^
 example.com idm.lab.example.com. ^
 A 10.10.10.22 (ip idm)
@@ -30,24 +31,38 @@ idm.lab.example.com.
 
 ipa-adtrust-install --netbios-name=IPAEXAMPLE -a Redhat123
 
-ansible-playbook install_ip_master.yml
-OR
-vi /root/ipa_pwd_extop.ldif
-dn: cn=ipa_pwd_extop,cn=plugins,cn=config
+vi nsslapd-listenhost.ldif
+dn: cn=config
 changetype: modify
-add: passSyncManagersDNs
-passSyncManagersDNs: uid=admin,cn=users,cn=accounts,dc=idm,dc=astra,dc=com
+replace: nsslapd-listenhost
+nsslapd-listenhost: 0.0.0.0
 
-ldapmodify -x -D "cn=Directory Manager" -h master.idm.astra.com -p 389 -f /root/ipa_pwd_extop.ldif -W
+ldapmodify -a -x -h directoryserver -p 389 -D cn="Directory Manager" -w password -f nsslapd-listenhost.ldif
 
+service dirsrv restart
 
-ipa trust-add --type=ad example.com --admin Administrator --password
+netstat -tnlp
+
+vi nsslapd-securelistenhost.ldif
+dn: cn=config
+changetype: modify
+replace: nsslapd-securelistenhost
+nsslapd-securelistenhost: 0.0.0.0 
+
+ldapmodify -a -x -h directoryserver -p 389 -D cn="Directory Manager" -w password -f nsslapd-securelistenhost.ldif
+
+service dirsrv restart
+
+netstat -tnlp
+
+ipa trust-add --type=ad example.com --admin Administrator --two-way=true --password
 OR
 ipa trust-add --type=ad example.com --admin Administrator --external=true --password --two-way=true
 
 authconfig --enablemkhomedir --update
 
 ##############REPLICA##############
+Note : join server become client before run this command
 yum install ipa-server ipa-server-dns
 
 kinit admin
@@ -68,9 +83,12 @@ ipa-client-install --server=idm.lab.example.com --domain=lab.example.com --realm
 authconfig --enablemkhomedir --update
 
 vi /etc/sssd/sssd.conf
+[domain/ipa.example/ad.example]
+use_fully_qualified_names = False
+
 [sssd]
 services = sudo, nss, ifp, pam, ssh, pac
-domains = lab.example.net
+domain_resolution_order = ad.example, ipa.example
 
 [nss]
 homedir_substring = /home
@@ -86,6 +104,24 @@ dns_lookup_kdc = true
 service sssd stop; rm -f /var/lib/sss/db/* ; service sssd start;service sssd status
 OR
 sss_cache -E
+
+-make user can use sudo
+https://www.youtube.com/watch?v=AR4pr-foT8s
+systemctl restart messagebus
+systemctl restart oddjobd
+
+vi /etc/sudo-ldap.conf (client)
+uri ldap://idm.lab.example.net (master idm host)
+ssl start_tls
+binddn uid=sudo,cn=sysaccounts,cn=etc,dc=lab,dc=example,dc=net
+bindpw Redhat123
+sudoers_base ou=sudoers,dc=lab,dc=example,dc=net
+tls_cacert /etc/ipa/ca.crt
+sudoers_debug 2
+
+kinit admin
+ldappasswd -Y GSSAPI -S uid=sudo,cn=sysaccounts,cn=etc,dc=lab,dc=example,dc=net
+New Password: Redhat123
 
 
 
@@ -105,31 +141,6 @@ ipa idrange-find
 ***KERBEROS
 -show krb user list
 klist -kt /etc/dirsrv/ds.keytab
-
-
-
-ipa certmaprule-add ad_cert_for_ipa_users \
-  --maprule='(ipacertmapdata=X509:<I>{issuer_dn!nss_x500}<S>{subject_dn!nss_x500})' \
-  --matchrule='<ISSUER>CN=AD-ROOT-CA,DC=ad,DC=example,DC=com' \
-  --domain=idm.astra.example.com
-
-  ipa certmaprule-add ad_cert_for_ad_users \
-  --maprule='(altSecurityIdentities=X509:<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500})' \
-  --matchrule='<ISSUER>CN=AD-ROOT-CA,DC=ad,DC=example,DC=com' \
-  --domain=AD.example.com
-
-  ipa certmaprule-add ad_cert_for_ipa_and_ad_users \
-  --maprule='(|(ipacertmapdata=X509:<I>{issuer_dn!nss_x500}<S>{subject_dn!nss_x500})(altSecurityIdentities=X509:<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500}))' \
-  --matchrule='<ISSUER>CN=AD-ROOT-CA,DC=example,DC=com' \
-  --domain=example.com
-
-  ipa certmaprule-add ipa_cert_for_ad_users \
-  --maprule='(|(userCertificate;binary={cert!bin})(ipacertmapdata=X509:<I>{issuer_dn!nss_x500}<S>{subject_dn!nss_x500})(altSecurityIdentities=X509:<I>{issuer_dn!ad_x500}<S>{subject_dn!ad_x500}))' \
-  --matchrule='<ISSUER>CN=Certificate Authority,O=ASTRA.EXAMPLE.COM' \
-  --domain=idm.astra.example.com --domain=example.com
-
-openssl x509 -in user.crt -noout -issuer
-issuer= /O=ASTRA.EXAMPLE.COM/CN=Certificate
 
 #####sudo config#####
 https://www.youtube.com/watch?v=AR4pr-foT8s
@@ -156,3 +167,22 @@ https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/5/html/de
 https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8-beta/html-single/installing_identity_management_and_access_control/index#planning-trust-non-posix-external-groups-and-security-id-mapping-fin
 
 https://docs.fedoraproject.org/en-US/Fedora/18/html/FreeIPA_Guide/trust-groups.html
+
+####LOGIN AD USER WITHOUT USE DOMAIN AD####
+https://docs.pagure.org/SSSD.sssd/design_pages/shortnames.html
+vi /etc/sssd/sssd.conf
+[sssd]
+...
+domain_resolution_order = ad.example, ipa.example
+...
+
+[sssd]
+...
+domain_resolution_order = ad.example, ipa.example
+...
+
+####ERROR CIFS WHEN DO TRUST TO AD####
+ipa: ERROR: CIFS server communication error: code "3221225506", message "{Access Denied} A process has requested access to an object but has not been granted those access rights." (both may be "None")
+
+https://lists.fedorahosted.org/archives/list/freeipa-users@lists.fedorahosted.org/thread/PGJ7NL5HEEVDEU3XKRZQWYD2WZTSTUPQ/
+http://gsr-linux.blogspot.com/2010/06/enforcing-directory-server-instances-to.html
