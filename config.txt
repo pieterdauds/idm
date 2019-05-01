@@ -55,7 +55,7 @@ service dirsrv restart
 
 netstat -tnlp
 
-ipa trust-add --type=ad example.com --admin Administrator --two-way=true --password
+ipa trust-add --type=ad example.com --admin Administrator --external=true --password
 OR
 ipa trust-add --type=ad example.com --admin Administrator --external=true --password --two-way=true
 
