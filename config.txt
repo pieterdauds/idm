@@ -119,7 +119,7 @@ vi /etc/hosts (master & replica)
 10.10.10.20 idm.lab.example.com
 10.10.10.22 replica.lab.example.com
 
-ipa-replica-install --setup-ca
+ipa-replica-install
 
 ipa-ca-install
 
