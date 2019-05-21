@@ -168,6 +168,11 @@ https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8-beta/ht
 
 https://docs.fedoraproject.org/en-US/Fedora/18/html/FreeIPA_Guide/trust-groups.html
 
+ipa group-add --desc='AD users external map' ad_users_external --external
+ipa group-add --desc='AD users' ad_users
+ipa group-add-member ad_users_external --external "AD\Domain Users"
+ipa group-add-member ad_users --groups ad_users_external
+
 ####LOGIN AD USER WITHOUT USE DOMAIN AD####
 https://docs.pagure.org/SSSD.sssd/design_pages/shortnames.html
 vi /etc/sssd/sssd.conf
