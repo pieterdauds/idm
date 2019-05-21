@@ -1,0 +1,13 @@
+---
+- hosts: all
+  vars:
+    freeipaclient_force_join: true
+    freeipaclient_server: idm.lab.example.net
+    freeipaclient_server2: replica.lab.example.net
+    freeipaclient_domain: lab.example.net
+    freeipaclient_dns_server: lab.example.net 
+    freeipaclient_enroll_user: admin
+    freeipaclient_enroll_pass: Redhat123
+    #freeipaclient_hostname: client.lab.example.net
+  roles:
+    - ansible-client
