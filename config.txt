@@ -28,6 +28,7 @@ example.com ^
 lab.example.com. NS ^
 idm.lab.example.com.
 
+ipa-dns-install
 
 ipa-adtrust-install --netbios-name=IPAEXAMPLE -a Redhat123
 
