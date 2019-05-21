@@ -16,6 +16,8 @@ kinit admin
 
 ipa dnsforwardzone-add --skip-overlap-check example.com --forwarder=10.10.10.21(ip AD) --forward-policy=only
 
+authconfig --enablemkhomedir --update
+
 systemctl restart named-pkcs11; systemctl status named-pkcs11
 
 ########TRUST TO ACTIVE DIRECTORY#######
@@ -59,8 +61,6 @@ netstat -tnlp
 ipa trust-add --type=ad example.com --admin Administrator --external=true --password
 OR
 ipa trust-add --type=ad example.com --admin Administrator --external=true --password --two-way=true
-
-authconfig --enablemkhomedir --update
 
 ##############IPA CLIENT##############
 ipa-client-install --server=idm.lab.example.com --domain=lab.example.com --realm=LAB.EXAMPLE.COM --mkhomedir
