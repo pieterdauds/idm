@@ -16,7 +16,7 @@
   assert:
     that:
       - freeipaclient_server is defined
-      - freeipaclient_server2 is defined
+      - freeipaclient_server_replica is defined
       - freeipaclient_domain is defined
       - freeipaclient_enroll_user is defined
       - freeipaclient_enroll_pass is defined
@@ -77,7 +77,7 @@
     {{ freeipaclient_install_command }}
     {{'--hostname=' + freeipaclient_hostname  if freeipaclient_hostname is defined else '--hostname=' + ansible_nodename }}
     --server={{ freeipaclient_server }}
-    --server={{ freeipaclient_server2 }}
+    --server={{ freeipaclient_server_replica }}
     --domain={{ freeipaclient_domain }}
     --principal={{ freeipaclient_enroll_user }}
     --password={{ freeipaclient_enroll_pass }}
@@ -98,13 +98,13 @@
 
 - name: Ansible copy directory to the remote server
   copy:
-    src: /etc/ansible/scriptaal/copy_configuration/sssd.conf
+    src: /etc/ansible/idm/copy_configuration/sssd.conf
     dest: /etc/sssd/sssd.conf
   become: yes
 
 - name: Ansible copy directory to the remote server
   copy:
-    src: /etc/ansible/scriptaal/copy_configuration/krb5.conf
+    src: /etc/ansible/idm/copy_configuration/krb5.conf
     dest: /etc/krb5.conf
   become: yes
 

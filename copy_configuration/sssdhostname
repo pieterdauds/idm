@@ -1,2 +1,0 @@
-hst="ipa_hostname = $(hostname -f)"
-sed -i "s/idmaviva/$hst/g" /etc/sssd/sssd.conf
