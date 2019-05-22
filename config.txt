@@ -186,6 +186,11 @@ domain_resolution_order = ad.example, ipa.example
 domain_resolution_order = ad.example, ipa.example
 ...
 
+####LOGGING####
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/linux_domain_identity_authentication_and_policy_guide/log-file-ref
+
+https://access.redhat.com/documentation/en-US/Red_Hat_Directory_Server/8.1/html/Configuration_and_Command_Reference/logs-reference.html
+
 ####ERROR CIFS WHEN DO TRUST TO AD####
 ipa: ERROR: CIFS server communication error: code "3221225506", message "{Access Denied} A process has requested access to an object but has not been granted those access rights." (both may be "None")
 
