@@ -124,6 +124,8 @@ ipa-replica-install
 
 ipa-ca-install
 
+***RUN IN MASTER IDM FOR ADD AGENT AD-TRUST
+ipa-adtrust-install --add-agent
 
 ***IPA CHECK TOPOLOGY
 ipa topologysegment-find domain
@@ -197,7 +199,7 @@ ipa: ERROR: CIFS server communication error: code "3221225506", message "{Access
 https://lists.fedorahosted.org/archives/list/freeipa-users@lists.fedorahosted.org/thread/PGJ7NL5HEEVDEU3XKRZQWYD2WZTSTUPQ/
 http://gsr-linux.blogspot.com/2010/06/enforcing-directory-server-instances-to.html
 
-######DELETE REPLICA SERVER######
+######DELETE SERVER######
 - Using Master
 ipa-replica-manage del replica.lab.example.net --force --cleanup
 - In Slave
